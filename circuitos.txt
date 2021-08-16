@@ -1,0 +1,112 @@
+
+Multiplicação(imagem: mult_circuit.png):
+
+    Lógica usada para aumentar o circuito de 4bits para 32bits:
+        O que fazem as multiplicações parciais?
+                Multiplica cada bit de A por cada bit de B.
+                Usando 4bits temos 4*4 multiplicadores parciais, usando 32bits teremos 32*32 multiplicadores parciais.
+                Assim temos A4 * B4, A4 * B3, A4 * B2, A4 * B1, depois A3 * B4, A3 * B3, A3 * B2, A3 * B1 e assim por diante.
+                No final teremos a multiplicação de cada bit de A com cada bit de B.
+
+        Número de multiplicações parciais = (número de bits que desejamos multiplicar) ao quadrado. 
+            Ex: 4bits de entrada, necessita de 4x4 = 16 multiplicações parciais.
+            Ex: 32bits de entrada, necessita de 32x32 = 1024 multiplicações parciais.
+
+        Número de entradas dos somadores = números de bits que desejamos multiplicar.
+            Ex: 4bits de entrada, necessita de somadores de 4bits.
+            Ex: 32bits de entrada, necessita de somadores de 32bits.
+
+        Número de somadores usados = (números de bits que desejamos multiplicar) - 1.
+            Ex: 4bits de entrada, necessita de 4 - 1 = 3 somadores completos.
+            Ex: 32bits de entrada, necessita de 32 - 1 = 31 somadores completos.
+
+        Bits de saída:
+            Bits do resultado = número de bits de entrada. 
+                Ex: 4bits de entrada, gera 4bits de saída.
+                Ex: 32bits de entrada, gera 32bits de saída.
+            Bits do overflow = número de bits de entrada. 
+                Ex: 4bits de entrada, gera 4bits de overflow.
+                Ex: 32bits de entrada, gera 32bits de overflow.
+        
+        Lógica para a entrada dos somadores:
+            Todos os somadores com o CarryIn em 0.
+            
+            A entrada A do somador 1 recebe a multiplicação parcial 2, e entrada A do somador 2 recebe a multiplicação parcial 3, e assim
+            por diante, por isso são usados (número de bits de entrada - 1) somadores.
+
+            Primeiro somador (somador mais acima, na direita do circuito):
+               
+                Ex: Somador de 4bits, o bit mais significativo da entrada B será 0, os outros (4 - 1) bits receberão os (4 -1) bits mais significativos da primeira multiplicação parcial.
+                Ex: Somador de 32bits, o bit mais significativo da entrada B será 0, os outros (32 - 1) bits receberão os (32 - 1) bits mais significativos da primeira multiplicação parcial.
+                O bit menos significativo da primeira multiplicação parcial será o primeiro bit do resultado da multiplicação.
+
+            Segundo somador até o penúltimo somador:
+                Ex: Somador de 4bits, o bit mais significativo da entrada B recebe o CarryOut do somador anterior, e os outros (4 - 1) bits receberão os (4 - 1) bits mais significativos do resultado da soma anterior.
+                Ex: Somador de 32bits, o bit mais significativo da entrada B recebe o CarryOut do somador anterior, e os outros (32 - 1) bits receberão os (32 - 1) bits mais significativos do resultado da soma anterior. 
+                O bit menos significativo da soma será o (número do somador + 1) bit do resultado da multiplicação.
+                    Ex: Somador 2 irá gerar o bit 3 do resultado da multiplicação.
+            
+            Último somador(somador mais abaixo, na esquerda do circuito):
+                Sua entrada A, entrada B e seu CarryIn continuam iguais aos somadores 2 até o penúltimo, 
+                e o bit menos significativo da soma será o (número do somador + 1) bit do resultado da multiplicação.
+                A única coisa que altera é que ele nos dá o overflow.
+                    Ex: Somador de 4bits, o bit CarryOut, e os (4 - 1) bits mais significativos da soma, respectivamente, são o overflow.
+                    Ex: Somador de 32bits, o bit CarryOut, e os (32 - 1) bits mais significativos da soma, respectivamente, são o overflow.    
+
+    Resumo: 
+        Pra 4, 16, 32, 64, 128, 256 bits e assim por diante é só usar a mesma regra, somadores baseados no número de bits,
+        número de somadores é N-1 (N = Número de bits), sempre o último somador nos dará o overflow, e o bit menos significativo de cada somador nos dá o produto no fim,
+        e o bit menos significativo do primeiro parcial nos dá o bit menos significativo do produto. E a conexão entre as portas e circuitos é a mesma lógica.
+    
+
+Divisão(imagem: div_circuit.png):
+
+    Lógica usada para aumentar o circuito de 4bits para 32bits:
+        Número de subtrações:
+            Ex: 4bits de entrada, necessita de 4*4 = 16 subtratores de 1bit.
+            Ex: 32bits de entrada, necessita de 32*32 = 1024 subtratores de 1bit.
+        Número de multiplexadores:
+            Ex: 4bits de entrada, necessita de (4-1) * (4 -1) + 4 = 13 multiplexadores de 1bit.
+            Ex: 32bits de entrada, necessita de (32 -1) * (32 - 1) + 32 = 993 multiplexadores de 1bit.
+        
+        Lógica para entrada dos subtratores e multiplexadores:
+            Em cada subtrator de 1bit, a sua entrada B terá um bit do número B.
+                Ex: [x - B4] <- [x - B3] <- [x - B2] <- [x - B1].
+            O subtrator mais à direita sempre terá seu BorrowIn em 0 e seu BorrowOut é ligado ao BorrowIn do subtrator ao lado até o samodor N - 1.
+            As saídas dos subtratores serão usadas pelos multiplexadores.
+
+            Os multiplexadores tem seus switchs ligados.
+
+            Primeiros 4 subtratores(primeira linha de subtratores):
+                Ex: 4bits de entrada, sempre os (4-1) bits mais significativos da entrada A serão 0, e o último bit da entrada A será o bit A(4) do número A.
+                Ex: 32bits de entrada, sempre os (32-1) bits mais significativos da entrada A serão 0, e o último bit da entrada A será o bit A(32) do número A.
+                Ignora-se o resultado do subtrator mais à esquerda. O seu BorrowOut negado é o bit mais significativo da divisão.
+                Seu BorrowOut é usado no switch dos multiplexadores de 1bit.
+            
+            Do primeiro ao penúltimo multiplexador(N - 1 multiplexadores em cada linha):
+                O multiplexador mais à esquerda recebe no seu switch o BorrowOut do subtrator mais á esquerda da linha superior.
+                A entrada 0 do multiplexador recebe a entrada A do subtrator N - 1 (contando da direita para a esquerda) da linha acima e na sua entrada 1, 
+                o valor A do subtrator N - 1 da linha acima.
+                Sua saída é usada nas entradas A dos N-1 últimos subtratores da linha abaixo (da direita pra esquerda).
+                Ex: 4bits de entrada, terão (4-1) multiplexadores, e gerarão (4 - 1) saídas, usarão na sua entrada 0 os resultados dos (4 - 1) primeiros (da direita pra esquerda) subtratores. 
+                    E na sua entrada 1 terão os bits da entrada A dos (4 - 1) primeiros subtratores (da direita pra esquerda) da linha de cima.
+                Ex: 32bits de entrada, terão (32-1) multiplexadores, e gerarão (32 - 1) saídas, usarão na sua entrada 0 os resultados dos (32 - 1) primeiros (da direita pra esquerda) subtratores. 
+                    E na sua entrada 1 terão os bits da entrada A dos (32 - 1) primeiros subtratores (da direita pra esquerda) da linha de cima.
+
+            Do quinto ao último subtrator(segunda linha até a linha N de subtratores):
+                Ex: 4bits de entrada, sempre os (4-1) bits mais significativos da entrada A serão as (4 - 1) saídas do multiplexadores acima, e o último bit da entrada A será o bit A(4 - (número da linha de subtratores - 1)) do número A.
+                Ex: 32bits de entrada, sempre os (32-1) bits mais significativos da entrada A serão as (32 - 1) saídas do multiplexadores acima, e o último bit da entrada A será o bit A(32 - (número da linha de subtratores - 1)) do número A.
+                Ignora-se o resultado do subtrator mais à esquerda. O seu BorrowOut negado é o bit(32 - (número da linha de subtratores - 1)) mais significativo da divisão.
+                Seu BorrowOut é usado no switch dos multiplexadores de 1bit.
+            
+            Última linha de multiplexadores:
+                É ele que nos dá o resto da divisão.
+                Ao contrário das outras linhas de multiplexadores, essa tem exatamente N multiplexadores de 1bit.
+                Em cada multiplexador, sua entrada 0 é o valor da retornado do subtrator da linha acima, e na sua entrada 1 é a entrada A do subtrator acima. 
+                Como são N subtratores e N multiplexadores, fica tudo certo. Retornando exatamente N bits de resto da divisão. 
+                
+    Resumo:
+         Pra 4, 16, 32, 64, 128, 256 bits e assim por diante é só seguir o mesmo princípio, conectando N subtratores em sequência,
+         e N - 1 multiplexadores, com exeção da última linha de multiplexadores. Os N - 1 primeiros subtratores sempre terão seus N - 1 bits mais à esquerda em 0.
+         E o BorrowOut de dos subtratores mais à esqurda sempre nos retornarão um bit do quociente.
+         E o retorno dos últimos N multiplexadores nos dará o resto da divisão.
